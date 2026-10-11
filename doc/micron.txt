@@ -1,0 +1,273 @@
+*micron.txt*  Micron (Nomad Network page markup) support and terminal preview
+
+==============================================================================
+CONTENTS                                                     *micron-contents*
+
+  1. Introduction ............................ |micron-intro|
+  2. Setup ................................... |micron-setup|
+  3. Configuration ........................... |micron-config|
+  4. Commands ................................ |micron-commands|
+  5. Preview ................................. |micron-preview|
+  6. Scripted pages and trust ................ |micron-trust|
+  7. Completion and snippets ................. |micron-completion|
+  8. Highlight groups ........................ |micron-highlights|
+  9. Syntax reference ........................ |micron-syntax|
+
+==============================================================================
+1. INTRODUCTION                                                 *micron-intro*
+
+Micron is the markup used by Reticulum / Nomad Network page nodes. This
+plugin provides, for `.mu` files:
+
+- `filetype=micron` with syntax highlighting, folding on `>` sections,
+  'commentstring', and `K` tag hints.
+- Shebang Python pages (`#!/usr/bin/env python3`) keep `filetype=python`
+  and get Micron tag highlights inside triple-quoted strings
+  (requires the Treesitter python parser, see |:checkhealth| micron).
+- Colour swatches on `` `Fxxx `` / `` `Bxxx `` and hex <-> Micron conversion.
+- Diagnostics: unclosed links/fields, missing local `/page` and `/file`
+  targets, unterminated literal blocks.
+- A terminal preview that renders Micron with its colours, runs scripted
+  pages, follows links, submits form fields, and refreshes partials.
+
+Requires Neovim 0.11+. 'termguicolors' is recommended for exact colours.
+
+==============================================================================
+2. SETUP                                                        *micron-setup*
+
+The plugin works without calling setup. To change options: >lua
+
+    require("micron").setup({
+      preview = { theme = "dark", split = "vertical" },
+    })
+<
+lazy.nvim (the plugin defers all work to `require` calls, so it does not need
+lazy-loading): >lua
+
+    { "zer0pink/micron.nvim", lazy = false, opts = {} }
+<
+
+==============================================================================
+3. CONFIGURATION                                               *micron-config*
+
+Defaults: >lua
+
+    {
+      preview = {
+        live_update = true,          -- re-render while typing
+        debounce_ms = 120,
+        execute_scripts = true,      -- run #! pages (needs trust)
+        require_executable_bit = false,
+        script_timeout_ms = 15000,
+        theme = "auto",              -- "auto" (follows 'background') | "dark" | "light"
+        extra_env = {},              -- extra env for scripts
+        default_fields = {},         -- initial form fields
+        request_env = { link_id = "preview-link", remote_identity = "preview-identity" },
+        auto_open = false,           -- open preview on entering a page
+        watch_files = true,          -- re-render when node files/ changes
+        split = "vertical",          -- "vertical" | "horizontal" | "tab"
+      },
+      editor = {
+        python_shebang = true,       -- shebang Python pages stay filetype=python
+        diagnostics = true,
+        color_swatches = true,
+      },
+    }
+<
+`extra_env`, `default_fields` and `request_env` replace the defaults rather
+than merging with them.
+
+Scripts always get `MICRON_PREVIEW=1`. Every field `name` is exported as both
+`name` and `field_name`; a `field_name` key also fills a missing `name`.
+
+==============================================================================
+4. COMMANDS                                                  *micron-commands*
+
+                                                                     *:Micron*
+:Micron preview         Open (or retarget) the preview for the current page.
+:Micron close           Close the preview.
+:Micron refresh         Re-run the page and its partials.
+:Micron raw             Toggle rendered / raw Micron output.
+:Micron back            Go back to the previous page.
+:Micron fields          Edit sticky preview fields (`name=value` lines, `:w`).
+:Micron reset-fields    Reset fields to `preview.default_fields`.
+:Micron trust [dir]     Trust the node root (default: current page's node).
+:Micron untrust [dir]   Remove trust.
+:Micron run             Run the page script in a terminal split with the
+                        preview fields as environment.
+:Micron validate        Refresh diagnostics and open the location list.
+:Micron hover           Show the hint for the tag under the cursor (`K`).
+:Micron reference       Open |micron-syntax|.
+:[range]Micron hex2mu [color]
+                        Convert a hex colour (`#00aa00`) to Micron (`0a0`).
+                        With a visual range, replaces the selection. The
+                        result is copied to `"` and `+`.
+:[range]Micron mu2hex [color]
+                        Convert a Micron colour (`0a0`, `` `F0a0 ``) to hex.
+:[range]Micron fg [color]
+:[range]Micron bg [color]
+                        Wrap the visual selection in `` `Fxxx … `f `` /
+                        `` `Bxxx … `b ``, or insert the pair at the cursor.
+                        Prompts for the colour when omitted.
+:[range]Micron bold
+:[range]Micron italic
+:[range]Micron underline
+                        Wrap the selection in `` `! `` / `` `* `` / `` `_ ``.
+
+Example mappings: >lua
+
+    vim.keymap.set("x", "<leader>mb", ":Micron bold<CR>")
+    vim.keymap.set("n", "<leader>mp", "<Cmd>Micron preview<CR>")
+<
+==============================================================================
+5. PREVIEW                                                    *micron-preview*
+
+The preview opens beside the page and keeps focus in the source window. It
+re-renders while you type (unsaved edits included) and after writes.
+
+Keys in the preview window:
+
+  <CR>      follow link / edit text field / toggle checkbox / select radio
+  <Tab>     next link or field          <S-Tab>  previous
+  <BS>      back
+  r         re-run page and partials    R        toggle raw markup
+  F         edit sticky fields          C        reset fields
+  q         close                       g?       help
+
+Moving onto a link echoes its destination and submitted fields.
+
+Links:
+- `/page/…` and `:/page/…` open the page (in the source window) and run it
+  with the submitted fields merged into the sticky fields. An empty value
+  clears a field; `clear` is never sticky.
+- `/file/…` opens text files in the source window; archives and binaries are
+  opened with the system handler (|vim.ui.open()|).
+- `http(s)://` links open in the browser.
+- `#anchor` jumps to `` `:anchor `` or a heading slug; a bare `#` jumps to
+  the next heading.
+
+Partials (`` `{:/page/bit.mu`5} ``) are executed and rendered in place, and
+refresh on their interval while the preview is open.
+
+The winbar shows the mode (`static`, `script`, `script-error`, `skipped`,
+`untrusted`), the page path relative to its node, run time and field count.
+Script failures show the error and stderr at the top.
+
+Rendering follows micron-parser.js / NomadNet: formatting persists across
+lines until reset, lines holding only tags produce no output, comments
+(`#…`) and `<` depth resets are hidden, and tables honour their
+`` `t<align><maxwidth> `` header (wide columns are truncated with `…`).
+
+==============================================================================
+6. SCRIPTED PAGES AND TRUST                                     *micron-trust*
+
+A page whose first line is an interpreter shebang is executed and its stdout
+previewed. `#!c=60`, `#!fg=ddd` and `#!bg=222` are Micron directives, not
+shebangs. Scripts run with the page directory as cwd; unsaved buffers are
+written to a temporary `.micron-preview-<name>` copy next to the page.
+
+Neovim has no workspace trust, so scripts only run under a trusted node root
+(the parent of `pages/`, or the page directory). The first time a page needs
+to run, the preview asks once per session; `:Micron trust` does the same
+explicitly. Trusted roots are stored in `stdpath("state")/micron/trusted.json`.
+
+==============================================================================
+7. COMPLETION AND SNIPPETS                                 *micron-completion*
+
+Micron buffers set 'omnifunc': type a backtick and press <C-x><C-o>. Accepting
+an item expands its snippet with |vim.snippet|.
+
+blink.cmp source: >lua
+
+    sources = {
+      per_filetype = { micron = { "micron", "snippets", "buffer" } },
+      providers = { micron = { name = "Micron", module = "micron.blink" } },
+    }
+<
+For Python pages, add `"micron"` to the python sources; the source only
+enables itself in Micron pages.
+
+`snippets/micron.json` is a VS Code-format snippet file exposed through the
+plugin's `package.json`, so LuaSnip (`require("luasnip.loaders.from_vscode")
+.lazy_load()`) and other VS Code-format loaders pick it up from 'runtimepath'.
+
+==============================================================================
+8. HIGHLIGHT GROUPS                                       *micron-highlights*
+
+Source highlighting (all `default` links, override freely):
+
+  micronTag            Keyword       micronColor          Constant
+  micronLink           Underlined    micronField          Identifier
+  micronPartial        PreProc       micronAnchor         Label
+  micronHeading        Title         micronHeadingMarker  Statement
+  micronDivider        Delimiter     micronComment        Comment
+  micronShebang        PreProc       micronDirective      Keyword
+  micronLiteral        String        micronEscape         SpecialChar
+
+Preview:
+
+  MicronPreviewLink     extra attributes for links (empty by default)
+  MicronPreviewField    text field extent (underline)
+  MicronPreviewPartial  partial placeholder
+  MicronPreviewError    script error header
+  MicronPreviewInfo     link destination echo
+  MicronPreviewTitle    winbar title
+
+==============================================================================
+9. SYNTAX REFERENCE                                           *micron-syntax*
+
+Text style ~
+  `` `!bold`! ``          Bold
+  `` `*italic`* ``        Italic
+  `` `_underline`_ ``     Underline
+  ` `` `                  Reset all formatting, colours and alignment
+
+Color ~
+  `` `F0a0text`f ``       Foreground (3 hex nibbles), then reset
+  `` `B444text`b ``       Background, then reset
+  `` `FT00aa00 ``         24-bit foreground (`` `BT…`` for background)
+  `` `Fg50 ``             Gray (0-99)
+  `#!fg=ddd`              Page default foreground (header line)
+  `#!bg=222`              Page default background
+  `0a0` <-> `#00aa00`     Each nibble expands like CSS #RGB
+
+Layout ~
+  `` `c `` `` `l `` `` `r `` `` `a ``
+                          Center / left / right / default align
+  `>Heading`              Section; more `>` = deeper
+  `<`                     Reset section depth
+  `-`                     Divider (`-=` uses `=` as the glyph)
+  `# comment`             Line comment (not shown)
+  `` `= `` … `` `= ``     Literal block: a line containing only `` `= ``
+                          opens it, another closes it
+  `` `t `` … `` `t ``     Table: `Name|Qty`, alignment row `:-:|-:`, rows;
+                          `` `tc40 `` centres with max width 40
+  `` `:name ``            Anchor, link with `` `[label`#name] ``
+  `\`                     Escape the next character
+
+Links ~
+  `` `[label`:/page/index.mu] ``          Same-node page
+  `` `[label`:/file/name.zip] ``          Same-node file
+  `` `[label`<hash>:/page/x.mu] ``        Other node (destination hash)
+  `` `[Go`:/page/a.mu`field] ``           Submit named fields
+  `` `[Go`:/page/a.mu`*] ``               Submit all fields
+  `` `[Go`:/page/a.mu`q|x=1] ``           Fields + request variables
+
+Fields ~
+  `` `<name`default> ``                   Text field
+  `` `<16|name`> ``                       Sized field
+  `` `<!|pass`secret> ``                  Masked
+  `` `<?|flag|1`Label> ``                 Checkbox (env field_flag)
+  `` `<^|color|Red`Red> ``                Radio group
+  `…|*`>`                                 Pre-checked / pre-selected
+
+Partials ~
+  `` `{:/page/bit.mu`5} ``                Reload fragment every 5s
+  `` `{:/page/bit.mu`5`q|pid=1} ``        With fields / stable pid
+
+Scripted pages ~
+  `#!/usr/bin/env python3`                Executable page
+  `#!c=60`                                Cache / refresh hint (seconds)
+  `print(micron)`                         Stdout is Micron sent to the client
+
+ vim:tw=78:ts=8:ft=help:norl:

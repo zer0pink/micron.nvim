@@ -1,0 +1,207 @@
+{
+  "parse": [
+    {
+      "input": "",
+      "kind": "hash",
+      "path": "",
+      "request_vars": {}
+    },
+    {
+      "input": "#",
+      "kind": "hash",
+      "path": "",
+      "request_vars": {}
+    },
+    {
+      "input": "#tables",
+      "kind": "hash",
+      "path": "#tables",
+      "request_vars": {}
+    },
+    {
+      "input": ":/page/index.mu",
+      "kind": "page",
+      "path": "index.mu",
+      "request_vars": {}
+    },
+    {
+      "input": "/page/a/b.mu",
+      "kind": "page",
+      "path": "a/b.mu",
+      "request_vars": {}
+    },
+    {
+      "input": "page/x.mu",
+      "kind": "page",
+      "path": "x.mu",
+      "request_vars": {}
+    },
+    {
+      "input": "/file/notes.zip",
+      "kind": "file",
+      "path": "notes.zip",
+      "request_vars": {}
+    },
+    {
+      "input": "file/x.txt",
+      "kind": "file",
+      "path": "x.txt",
+      "request_vars": {}
+    },
+    {
+      "input": "nomadnetwork://:/page/index.mu",
+      "kind": "page",
+      "path": "index.mu",
+      "request_vars": {}
+    },
+    {
+      "input": "lxmf://abc",
+      "kind": "unknown",
+      "path": "abc",
+      "request_vars": {}
+    },
+    {
+      "input": "https://example.com/x",
+      "kind": "http",
+      "path": "https://example.com/x",
+      "request_vars": {}
+    },
+    {
+      "input": "HTTP://EXAMPLE.com",
+      "kind": "http",
+      "path": "HTTP://EXAMPLE.com",
+      "request_vars": {}
+    },
+    {
+      "input": "0123456789abcdef0123456789abcdef:/page/remote.mu",
+      "kind": "page",
+      "path": "remote.mu",
+      "request_vars": {}
+    },
+    {
+      "input": "abcdef:/page/short.mu",
+      "kind": "page",
+      "path": "abcdef:/page/short.mu",
+      "request_vars": {}
+    },
+    {
+      "input": ":/page/search.mu`q=hello|page=2",
+      "kind": "page",
+      "path": "search.mu",
+      "request_vars": {
+        "q": "hello",
+        "page": "2"
+      }
+    },
+    {
+      "input": ":/page/x.mu`=bad|noeq|k=v=w",
+      "kind": "page",
+      "path": "x.mu",
+      "request_vars": {
+        "k": "v=w"
+      }
+    },
+    {
+      "input": "plain.mu",
+      "kind": "page",
+      "path": "plain.mu",
+      "request_vars": {}
+    },
+    {
+      "input": "/something/else",
+      "kind": "unknown",
+      "path": "something/else",
+      "request_vars": {}
+    },
+    {
+      "input": "  :/page/trim.mu  ",
+      "kind": "page",
+      "path": "trim.mu",
+      "request_vars": {}
+    }
+  ],
+  "merge": [
+    {
+      "sticky": {
+        "a": "1",
+        "b": "2"
+      },
+      "incoming": {
+        "b": "3",
+        "c": "4"
+      },
+      "vars": {},
+      "expected": {
+        "a": "1",
+        "b": "3",
+        "c": "4"
+      }
+    },
+    {
+      "sticky": {
+        "a": "1",
+        "b": "2"
+      },
+      "incoming": {
+        "a": ""
+      },
+      "vars": {
+        "d": "5"
+      },
+      "expected": {
+        "b": "2",
+        "d": "5"
+      }
+    },
+    {
+      "sticky": {
+        "a": "1"
+      },
+      "incoming": {
+        "clear": "1",
+        "x": "y"
+      },
+      "vars": {},
+      "expected": {
+        "a": "1",
+        "x": "y"
+      }
+    },
+    {
+      "sticky": {
+        "clear": "old"
+      },
+      "incoming": {},
+      "vars": {
+        "a": ""
+      },
+      "expected": {}
+    }
+  ],
+  "shebang": [
+    {
+      "input": "#!/usr/bin/env python3\nprint()",
+      "expected": true
+    },
+    {
+      "input": "#!c=60\n>Static",
+      "expected": false
+    },
+    {
+      "input": "#!fg=ddd",
+      "expected": false
+    },
+    {
+      "input": "#! /bin/sh",
+      "expected": true
+    },
+    {
+      "input": ">no",
+      "expected": false
+    },
+    {
+      "input": "#!bg=222",
+      "expected": false
+    }
+  ]
+}

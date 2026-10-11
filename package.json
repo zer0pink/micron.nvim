@@ -1,0 +1,12 @@
+{
+  "name": "micron-snippets",
+  "description": "Micron snippets for VS Code-format snippet loaders (LuaSnip, blink.cmp, nvim-snippets)",
+  "contributes": {
+    "snippets": [
+      {
+        "language": "micron",
+        "path": "./snippets/micron.json"
+      }
+    ]
+  }
+}

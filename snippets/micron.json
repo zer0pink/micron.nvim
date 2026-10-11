@@ -1,0 +1,94 @@
+{
+  "Bold": {
+    "prefix": "mb",
+    "body": "`!${1:text}`!",
+    "description": "Bold text"
+  },
+  "Italic": {
+    "prefix": "mi",
+    "body": "`*${1:text}`*",
+    "description": "Italic text"
+  },
+  "Underline": {
+    "prefix": "mu",
+    "body": "`_${1:text}`_",
+    "description": "Underlined text"
+  },
+  "Foreground color": {
+    "prefix": "mfg",
+    "body": "`F${1:0a0}${2:text}`f",
+    "description": "Foreground color"
+  },
+  "Background color": {
+    "prefix": "mbg",
+    "body": "`B${1:444}${2:text}`b",
+    "description": "Background color"
+  },
+  "Centered line": {
+    "prefix": "mc",
+    "body": "`c${1:centered text}",
+    "description": "Center-aligned line"
+  },
+  "Section heading": {
+    "prefix": "mh",
+    "body": ">${1:Heading}\n${2}",
+    "description": "Section heading"
+  },
+  "Link labeled": {
+    "prefix": "ml",
+    "body": "`F0a0`_`[${1:label}`:${2:/page/index.mu}]`_`f",
+    "description": "Labeled page link"
+  },
+  "Link with fields": {
+    "prefix": "mlf",
+    "body": "`F0a0`_`[${1:Submit}`:${2:/page/handler.mu}`${3:field}]`_`f",
+    "description": "Link that submits form fields"
+  },
+  "Text field": {
+    "prefix": "mfield",
+    "body": "`B444`<${1:16}|${2:name}`${3:default}>`b",
+    "description": "Sized text input field"
+  },
+  "Checkbox": {
+    "prefix": "mcb",
+    "body": "`B444`<?|${1:field}|${2:1}`>`b ${3:Label}",
+    "description": "Checkbox field"
+  },
+  "Radio option": {
+    "prefix": "mradio",
+    "body": "`B444`<^|${1:group}|${2:value}`>`b ${3:Label}",
+    "description": "Radio button option"
+  },
+  "Divider": {
+    "prefix": "md",
+    "body": "`F888-`f",
+    "description": "Horizontal divider"
+  },
+  "Literal block": {
+    "prefix": "mlit",
+    "body": "`=\n${1}\n`=",
+    "description": "Literal (unparsed) block"
+  },
+  "Cache directive": {
+    "prefix": "mcache",
+    "body": "#!c=${1:60}",
+    "description": "Page cache / refresh directive"
+  },
+  "Python page script": {
+    "prefix": "mpy",
+    "body": [
+      "#!/usr/bin/env python3",
+      "",
+      "TEMPLATE = \"\"\"",
+      "`c`!${1:Title}`!`c",
+      "",
+      "${2}",
+      "\"\"\"",
+      "",
+      "if __name__ == \"__main__\":",
+      "    print(TEMPLATE)",
+      ""
+    ],
+    "description": "Scripted Micron page skeleton"
+  }
+}
